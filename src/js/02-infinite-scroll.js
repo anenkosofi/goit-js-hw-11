@@ -1,6 +1,5 @@
 import ImagesApiService from './images-service';
-import LoadMoreBtn from './load-more-btn';
-import './css/styles.css';
+import '../css/styles.css';
 import Notiflix from 'notiflix';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
@@ -12,23 +11,10 @@ const refs = {
 
 let hitsLength = 40;
 
-const loadMoreBtn = new LoadMoreBtn({
-  selector: '.load-more',
-  hidden: true,
-});
-
 const imagesApiService = new ImagesApiService();
 
-// const { height: cardHeight } =
-//   refs.form.firstElementChild.getBoundingClientRect();
-
-// window.scrollBy({
-//   top: cardHeight * 2,
-//   behavior: 'smooth',
-// });
-
 refs.form.addEventListener('submit', onSearch);
-loadMoreBtn.refs.button.addEventListener('click', fetchImages);
+window.addEventListener('scroll', onScroll);
 
 function onSearch(e) {
   e.preventDefault();
@@ -42,7 +28,6 @@ function onSearch(e) {
     return;
   }
 
-  loadMoreBtn.show();
   imagesApiService.resetPage();
   clearGalleryContainer();
 
@@ -51,14 +36,22 @@ function onSearch(e) {
   refs.form.reset();
 }
 
+function onScroll() {
+  const documentRect = document.documentElement.getBoundingClientRect();
+  const cardRect =
+    refs.galleryContainer.firstElementChild.getBoundingClientRect();
+  if (documentRect.bottom < cardRect.height * 2) {
+    fetchImages();
+  }
+}
+
 function fetchImages() {
-  loadMoreBtn.disable();
   imagesApiService.fetchImages().then(({ totalHits, hits }) => {
     if (hitsLength > totalHits) {
-      loadMoreBtn.hide();
       Notiflix.Notify.failure(
         "We're sorry, but you've reached the end of search results."
       );
+      return;
     } else if (hits.length === 0) {
       Notiflix.Notify.failure(
         'Sorry, there are no images matching your search query. Please try again.'
@@ -66,6 +59,7 @@ function fetchImages() {
       return;
     } else {
       Notiflix.Notify.success(`Hooray! We found ${hitsLength} images.`);
+
       renderImagesCards(hits);
 
       const lightbox = new SimpleLightbox('.gallery a', {
@@ -75,7 +69,6 @@ function fetchImages() {
 
       lightbox.refresh();
 
-      loadMoreBtn.enable();
       hitsLength += hits.length;
     }
   });
