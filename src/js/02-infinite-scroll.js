@@ -10,6 +10,7 @@ const refs = {
 };
 
 let hitsLength = 40;
+let isFetching = false;
 
 const imagesApiService = new ImagesApiService();
 
@@ -40,12 +41,14 @@ function onScroll() {
   const documentRect = document.documentElement.getBoundingClientRect();
   const cardRect =
     refs.galleryContainer.firstElementChild.getBoundingClientRect();
+  if (isFetching) return;
   if (documentRect.bottom < cardRect.height * 2) {
     fetchImages();
   }
 }
 
 function fetchImages() {
+  isFetching = true;
   imagesApiService.fetchImages().then(({ totalHits, hits }) => {
     if (hitsLength > totalHits) {
       Notiflix.Notify.failure(
@@ -70,6 +73,7 @@ function fetchImages() {
       lightbox.refresh();
 
       hitsLength += hits.length;
+      isFetching = false;
     }
   });
 }
