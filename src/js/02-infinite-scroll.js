@@ -7,6 +7,13 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 const refs = {
   form: document.querySelector('.search-form'),
   galleryContainer: document.querySelector('.gallery'),
+  jsGuard: document.querySelector('.guard'),
+};
+
+const options = {
+  root: null,
+  rootMargin: '300px',
+  threshold: 1.0,
 };
 
 let hitsLength = 40;
@@ -14,8 +21,17 @@ let isFetching = false;
 
 const imagesApiService = new ImagesApiService();
 
+const observer = new IntersectionObserver(onInfiniteScroll, options);
+
+function onInfiniteScroll(entries, observer) {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && !isFetching) {
+      fetchImages();
+    }
+  });
+}
+
 refs.form.addEventListener('submit', onSearch);
-window.addEventListener('scroll', onScroll);
 
 function onSearch(e) {
   e.preventDefault();
@@ -33,24 +49,16 @@ function onSearch(e) {
   clearGalleryContainer();
 
   fetchImages();
+  observer.observe(refs.jsGuard);
 
   refs.form.reset();
-}
-
-function onScroll() {
-  const documentRect = document.documentElement.getBoundingClientRect();
-  const cardRect =
-    refs.galleryContainer.firstElementChild.getBoundingClientRect();
-  if (isFetching) return;
-  if (documentRect.bottom < cardRect.height * 2) {
-    fetchImages();
-  }
 }
 
 function fetchImages() {
   isFetching = true;
   imagesApiService.fetchImages().then(({ totalHits, hits }) => {
     if (hitsLength > totalHits) {
+      observer.unobserve(refs.jsGuard);
       Notiflix.Notify.failure(
         "We're sorry, but you've reached the end of search results."
       );
